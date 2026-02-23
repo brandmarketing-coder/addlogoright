@@ -102,42 +102,66 @@ export default function App() {
     }
   };
 
-const drawCanvas = useCallback((img: HTMLImageElement, currentSettings: EditorSettings) => {
-  const canvas = canvasRef.current;
-  if (!canvas) return;
+  const drawCanvas = useCallback((img: HTMLImageElement, currentSettings: EditorSettings) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  // footer 高度用「原圖高度」去算
-  const footerHeight = img.height * currentSettings.footerHeightRatio;
+    // Set canvas size to match image
+    canvas.width = img.width;
+    canvas.height = img.height;
 
-  // ✅ 重點：canvas 變高，下面多出 footer 空間
-  canvas.width = img.width;
-  canvas.height = img.height + footerHeight;
+    // Draw original image
+    ctx.drawImage(img, 0, 0);
 
-  // 1) 畫原圖（完全不被遮到）
-  ctx.globalAlpha = 1;
-  ctx.drawImage(img, 0, 0);
+    // --- Draw Footer Bar ---
+    const footerHeight = img.height * currentSettings.footerHeightRatio;
+    const footerY = img.height - footerHeight;
 
-  // 2) 畫 footer 底條（在圖片下方）
-  const footerY = img.height; // 從原圖底部開始
-  ctx.globalAlpha = currentSettings.footerOpacity;
-  ctx.fillStyle = currentSettings.footerColor;
-  ctx.fillRect(0, footerY, img.width, footerHeight);
-  ctx.globalAlpha = 1;
+    ctx.globalAlpha = currentSettings.footerOpacity;
+    ctx.fillStyle = currentSettings.footerColor;
+    ctx.fillRect(0, footerY, img.width, footerHeight);
+    ctx.globalAlpha = 1.0;
 
-  // 3) 畫 Logo（置中放在 footer 區域）
-// --- Draw Logo only ---
-if (logoImage) {
-  const logoSize = footerHeight * (1 - currentSettings.logoPadding * 2);
-  const logoY = footerY + (footerHeight * currentSettings.logoPadding);
+    // --- Draw Logo & Text ---
+    // Calculate dimensions
+    // Logo height is determined by padding within the footer
+    const logoSize = footerHeight * (1 - currentSettings.logoPadding * 2);
+    const logoY = footerY + (footerHeight * currentSettings.logoPadding);
+    
+    // Font size relative to logo size
+    const fontSize = logoSize * 0.5;
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    const text = "O'right PRO";
+    const textMetrics = ctx.measureText(text);
+    const textWidth = textMetrics.width;
+    
+    // Spacing between logo and text
+    const spacing = logoSize * 0.4;
+    
+    // Calculate total width to center the group
+    const totalContentWidth = logoSize + spacing + textWidth;
+    const startX = (img.width - totalContentWidth) / 2;
 
-  // 置中
-  const logoX = (img.width - logoSize) / 2;
+    // 1. Draw Logo Image (if loaded)
+    if (logoImage) {
+      ctx.drawImage(logoImage, startX, logoY, logoSize, logoSize);
+    }
 
-  ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
-}
+    // 2. Draw Text "O'right PRO"
+    ctx.fillStyle = currentSettings.forceLogoWhite ? 'white' : 'white'; // Always white on dark footer usually
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    
+    // Text Y position: centered vertically in the logo area
+    // logoY is top of logo. Center is logoY + logoSize/2.
+    const centerY = logoY + logoSize / 2;
+    ctx.fillText(text, startX + logoSize + spacing, centerY);
+
+  }, [logoImage]);
 
   // Re-draw when settings change or logo loads
   useEffect(() => {
