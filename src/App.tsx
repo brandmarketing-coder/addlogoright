@@ -134,27 +134,12 @@ export default function App() {
     // Font size relative to logo size
     const fontSize = logoSize * 0.5;
     ctx.font = `bold ${fontSize}px sans-serif`;
-    const text = "O'right PRO";
-    const textMetrics = ctx.measureText(text);
-    const textWidth = textMetrics.width;
-    
-    // Spacing between logo and text
-    const spacing = logoSize * 0.4;
-    
-    // Calculate total width to center the group
-    const totalContentWidth = logoSize + spacing + textWidth;
-    const startX = (img.width - totalContentWidth) / 2;
 
     // 1. Draw Logo Image (if loaded)
     if (logoImage) {
       ctx.drawImage(logoImage, startX, logoY, logoSize, logoSize);
     }
 
-    
-    // Text Y position: centered vertically in the logo area
-    // logoY is top of logo. Center is logoY + logoSize/2.
-    const centerY = logoY + logoSize / 2;
-    ctx.fillText(text, startX + logoSize + spacing, centerY);
 
   }, [logoImage]);
 
