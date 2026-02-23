@@ -128,14 +128,16 @@ const drawCanvas = useCallback((img: HTMLImageElement, currentSettings: EditorSe
   ctx.globalAlpha = 1;
 
   // 3) 畫 Logo（置中放在 footer 區域）
-  if (logoImage) {
-    const logoSize = footerHeight * (1 - currentSettings.logoPadding * 2);
-    const logoX = (img.width - logoSize) / 2;
-    const logoY = footerY + (footerHeight - logoSize) / 2;
+// --- Draw Logo only ---
+if (logoImage) {
+  const logoSize = footerHeight * (1 - currentSettings.logoPadding * 2);
+  const logoY = footerY + (footerHeight * currentSettings.logoPadding);
 
-    ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
-  }
-}, [logoImage]);
+  // 置中
+  const logoX = (img.width - logoSize) / 2;
+
+  ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+}
 
   // Re-draw when settings change or logo loads
   useEffect(() => {
