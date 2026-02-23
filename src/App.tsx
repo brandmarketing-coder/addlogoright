@@ -150,11 +150,6 @@ export default function App() {
       ctx.drawImage(logoImage, startX, logoY, logoSize, logoSize);
     }
 
-    // 2. Draw Text "O'right PRO"
-    ctx.fillStyle = currentSettings.forceLogoWhite ? 'white' : 'white'; // Always white on dark footer usually
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.font = `bold ${fontSize}px sans-serif`;
     
     // Text Y position: centered vertically in the logo area
     // logoY is top of logo. Center is logoY + logoSize/2.
