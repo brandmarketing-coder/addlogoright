@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Image as ImageIcon, Upload, X, Download, Settings, Sliders } from 'lucide-react';
+import { Image as ImageIcon, X, Download, Settings, Sliders } from 'lucide-react';
 
 export interface EditorSettings {
   footerColor: string;
@@ -18,15 +18,15 @@ export const DEFAULT_SETTINGS: EditorSettings = {
   footerColor: '#1a331a', // Deep Dark Green
   footerOpacity: 0.4,     // Fixed at 40%
 
-  // [調整 Bar 高度] 
+  // [調整 Bar 高度]
   // 決定綠色底條佔整張照片高度的比例 (0.1 = 10%)
-  footerHeightRatio: 0.11, 
+  footerHeightRatio: 0.11,
 
-  // [調整 Logo 大小] 
+  // [調整 Logo 大小]
   // 決定 Logo 在底條內的上下留白比例 (0.25 = 上下各留 25% 空間，Logo 本身佔 50% 高度)
   // 若要 Logo 變大：請改小這個數字 (例如 改成 0.15)
   // 若要 Logo 變小：請改大這個數字 (例如 改成 0.35)
-  logoPadding: 0.12,      
+  logoPadding: 0.12,
 
   forceLogoWhite: false,
 };
@@ -37,7 +37,7 @@ export default function App() {
   const [settings, setSettings] = useState<EditorSettings>(DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
   const [logoImage, setLogoImage] = useState<HTMLImageElement | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
@@ -45,7 +45,7 @@ export default function App() {
   // Load logo image on mount
   useEffect(() => {
     const img = new Image();
-    img.src = '/logo.png'; // Updated to logo.png
+    img.src = '/logo.png';
     img.onload = () => {
       setLogoImage(img);
     };
@@ -64,7 +64,7 @@ export default function App() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -82,7 +82,7 @@ export default function App() {
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setSelectedImage(result);
-        
+
         const img = new Image();
         img.onload = () => {
           originalImageRef.current = img;
@@ -102,45 +102,43 @@ export default function App() {
     }
   };
 
-  const drawCanvas = useCallback((img: HTMLImageElement, currentSettings: EditorSettings) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const drawCanvas = useCallback(
+    (img: HTMLImageElement, currentSettings: EditorSettings) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    // Set canvas size to match image
-    canvas.width = img.width;
-    canvas.height = img.height;
+      // footer 高度用「原圖高度」去算
+      const footerHeight = img.height * currentSettings.footerHeightRatio;
 
-    // Draw original image
-    ctx.drawImage(img, 0, 0);
+      // ✅ 重點：canvas 變高，下面多出 footer 空間
+      canvas.width = img.width;
+      canvas.height = img.height + footerHeight;
 
-    // --- Draw Footer Bar ---
-    const footerHeight = img.height * currentSettings.footerHeightRatio;
-    const footerY = img.height - footerHeight;
+      // 1) 畫原圖（完全不被遮到）
+      ctx.globalAlpha = 1;
+      ctx.drawImage(img, 0, 0);
 
-    ctx.globalAlpha = currentSettings.footerOpacity;
-    ctx.fillStyle = currentSettings.footerColor;
-    ctx.fillRect(0, footerY, img.width, footerHeight);
-    ctx.globalAlpha = 1.0;
+      // 2) 畫 footer 底條（在圖片下方）
+      const footerY = img.height; // 從原圖底部開始
+      ctx.globalAlpha = currentSettings.footerOpacity;
+      ctx.fillStyle = currentSettings.footerColor;
+      ctx.fillRect(0, footerY, img.width, footerHeight);
+      ctx.globalAlpha = 1;
 
-    // --- Draw Logo & Text ---
-    // Calculate dimensions
-    // Logo height is determined by padding within the footer
-    const logoSize = footerHeight * (1 - currentSettings.logoPadding * 2);
-    const logoY = footerY + (footerHeight * currentSettings.logoPadding);
-    
-    // Calculate total width to center the group (just the logo now)
-    const totalContentWidth = logoSize;
-    const startX = (img.width - totalContentWidth) / 2;
+      // 3) 只畫 Logo（不畫任何文字）
+      if (logoImage) {
+        const logoSize = footerHeight * (1 - currentSettings.logoPadding * 2);
+        const logoX = (img.width - logoSize) / 2;
+        const logoY = footerY + (footerHeight - logoSize) / 2;
 
-    // 1. Draw Logo Image (if loaded)
-    if (logoImage) {
-      ctx.drawImage(logoImage, startX, logoY, logoSize, logoSize);
-    }
-
-  }, [logoImage]);
+        ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+      }
+    },
+    [logoImage]
+  );
 
   // Re-draw when settings change or logo loads
   useEffect(() => {
@@ -151,7 +149,7 @@ export default function App() {
 
   const handleDownload = () => {
     if (!canvasRef.current) return;
-    
+
     const link = document.createElement('a');
     link.download = 'oright-pro-edited.png';
     link.href = canvasRef.current.toDataURL('image/png');
@@ -159,7 +157,7 @@ export default function App() {
   };
 
   const updateSetting = (key: keyof EditorSettings, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -169,13 +167,16 @@ export default function App() {
         <div className="flex items-center gap-3">
           <img src="/logo.png" alt="O'right Logo" className="w-8 h-8 rounded-full" />
           <h1 className="text-xl font-medium text-slate-800">
-            <span className="font-bold">O'right</span> | PRO <span className="text-[#66BB6A]">Image Editor</span>
+            <span className="font-bold">O'right</span> | PRO{' '}
+            <span className="text-[#66BB6A]">Image Editor</span>
           </h1>
         </div>
         {selectedImage && (
-          <button 
+          <button
             onClick={() => setShowSettings(!showSettings)}
-            className={`p-2 rounded-lg transition-colors ${showSettings ? 'bg-gray-100 text-[#66BB6A]' : 'text-slate-500 hover:bg-gray-100'}`}
+            className={`p-2 rounded-lg transition-colors ${
+              showSettings ? 'bg-gray-100 text-[#66BB6A]' : 'text-slate-500 hover:bg-gray-100'
+            }`}
           >
             <Settings className="w-6 h-6" />
           </button>
@@ -184,7 +185,6 @@ export default function App() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 flex gap-6 justify-center items-start">
-        
         {/* Settings Panel */}
         {selectedImage && showSettings && (
           <div className="w-80 bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex-shrink-0">
@@ -200,8 +200,8 @@ export default function App() {
                   Footer Color
                 </label>
                 <div className="flex gap-2">
-                  <input 
-                    type="color" 
+                  <input
+                    type="color"
                     value={settings.footerColor}
                     onChange={(e) => updateSetting('footerColor', e.target.value)}
                     className="h-10 w-full rounded cursor-pointer"
@@ -214,10 +214,10 @@ export default function App() {
                 <label className="block text-sm font-medium text-slate-600 mb-2">
                   Footer Opacity: {Math.round(settings.footerOpacity * 100)}%
                 </label>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="1" 
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
                   step="0.05"
                   value={settings.footerOpacity}
                   onChange={(e) => updateSetting('footerOpacity', parseFloat(e.target.value))}
@@ -230,13 +230,15 @@ export default function App() {
                 <label className="block text-sm font-medium text-slate-600 mb-2">
                   Footer Height: {Math.round(settings.footerHeightRatio * 100)}%
                 </label>
-                <input 
-                  type="range" 
-                  min="0.05" 
-                  max="0.3" 
+                <input
+                  type="range"
+                  min="0.05"
+                  max="0.3"
                   step="0.01"
                   value={settings.footerHeightRatio}
-                  onChange={(e) => updateSetting('footerHeightRatio', parseFloat(e.target.value))}
+                  onChange={(e) =>
+                    updateSetting('footerHeightRatio', parseFloat(e.target.value))
+                  }
                   className="w-full accent-[#66BB6A]"
                 />
               </div>
@@ -246,10 +248,10 @@ export default function App() {
                 <label className="block text-sm font-medium text-slate-600 mb-2">
                   Logo Size (Inverse Padding)
                 </label>
-                <input 
-                  type="range" 
-                  min="0.05" 
-                  max="0.4" 
+                <input
+                  type="range"
+                  min="0.05"
+                  max="0.4"
                   step="0.01"
                   value={settings.logoPadding}
                   onChange={(e) => updateSetting('logoPadding', parseFloat(e.target.value))}
@@ -259,7 +261,7 @@ export default function App() {
               </div>
 
               {/* Reset Button */}
-              <button 
+              <button
                 onClick={() => setSettings(DEFAULT_SETTINGS)}
                 className="w-full py-2 text-sm text-slate-500 hover:text-slate-800 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -271,7 +273,6 @@ export default function App() {
 
         {/* Editor Area */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-4xl text-center flex-grow">
-          
           {!selectedImage ? (
             <div className="py-12">
               {/* Icon */}
@@ -282,21 +283,20 @@ export default function App() {
               </div>
 
               {/* Text */}
-              <h2 className="text-2xl font-medium text-slate-800 mb-3">
-                Upload Photo
-              </h2>
+              <h2 className="text-2xl font-medium text-slate-800 mb-3">Upload Photo</h2>
               <p className="text-slate-500 mb-10">
-                Select a photo to automatically add the O'right PRO brand logo.
+                Select a photo to automatically add the O&apos;right PRO brand logo.
               </p>
 
               {/* Dropzone */}
-              <div 
+              <div
                 className={`
                   border-2 border-dashed rounded-xl p-12 transition-colors cursor-pointer
                   flex flex-col items-center justify-center gap-4 max-w-xl mx-auto
-                  ${isDragging 
-                    ? 'border-[#66BB6A] bg-green-50/30' 
-                    : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50/50'
+                  ${
+                    isDragging
+                      ? 'border-[#66BB6A] bg-green-50/30'
+                      : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50/50'
                   }
                 `}
                 onDragOver={handleDragOver}
@@ -304,20 +304,18 @@ export default function App() {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
                   accept="image/*"
                   onChange={handleFileInput}
                 />
-                
+
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
                   <ImageIcon className="w-6 h-6" />
                 </div>
-                <span className="text-gray-400 font-medium">
-                  Click or drag photo here
-                </span>
+                <span className="text-gray-400 font-medium">Click or drag photo here</span>
               </div>
             </div>
           ) : (
@@ -325,14 +323,14 @@ export default function App() {
               <div className="mb-6 flex justify-between items-center">
                 <h2 className="text-xl font-medium text-slate-800">Preview</h2>
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={clearImage}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     <X className="w-4 h-4" />
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={handleDownload}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#66BB6A] rounded-lg hover:bg-[#5CA860] transition-colors"
                   >
@@ -341,16 +339,15 @@ export default function App() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex justify-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-                <canvas 
+                <canvas
                   ref={canvasRef}
                   className="max-h-[70vh] w-auto max-w-full object-contain shadow-lg"
                 />
               </div>
             </div>
           )}
-
         </div>
       </main>
     </div>
