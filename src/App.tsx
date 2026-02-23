@@ -188,7 +188,7 @@ export default function App() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/logo.svg" alt="O'right Logo" className="w-8 h-8 rounded-full" />
+          <img src="/logo.png" alt="O'right Logo" className="w-8 h-8 rounded-full" />
           <h1 className="text-xl font-medium text-slate-800">
             <span className="font-bold">O'right</span> | PRO <span className="text-[#66BB6A]">Image Editor</span>
           </h1>
