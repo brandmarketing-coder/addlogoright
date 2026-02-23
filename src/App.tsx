@@ -45,7 +45,7 @@ export default function App() {
   // Load logo image on mount
   useEffect(() => {
     const img = new Image();
-    img.src = '/logo.svg';
+    img.src = '/logo.png';
     img.onload = () => {
       setLogoImage(img);
     };
