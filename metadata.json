@@ -1,0 +1,5 @@
+{
+  "name": "O'right PRO Image Editor",
+  "description": "An image editor application that automatically adds the O'right PRO brand logo to uploaded photos.",
+  "requestFramePermissions": []
+}
