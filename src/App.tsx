@@ -102,46 +102,40 @@ export default function App() {
     }
   };
 
-  const drawCanvas = useCallback((img: HTMLImageElement, currentSettings: EditorSettings) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+const drawCanvas = useCallback((img: HTMLImageElement, currentSettings: EditorSettings) => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-    // Set canvas size to match image
-    canvas.width = img.width;
-    canvas.height = img.height;
+  // footer 高度用「原圖高度」去算
+  const footerHeight = img.height * currentSettings.footerHeightRatio;
 
-    // Draw original image
-    ctx.drawImage(img, 0, 0);
+  // ✅ 重點：canvas 變高，下面多出 footer 空間
+  canvas.width = img.width;
+  canvas.height = img.height + footerHeight;
 
-    // --- Draw Footer Bar ---
-    const footerHeight = img.height * currentSettings.footerHeightRatio;
-    const footerY = img.height - footerHeight;
+  // 1) 畫原圖（完全不被遮到）
+  ctx.globalAlpha = 1;
+  ctx.drawImage(img, 0, 0);
 
-    ctx.globalAlpha = currentSettings.footerOpacity;
-    ctx.fillStyle = currentSettings.footerColor;
-    ctx.fillRect(0, footerY, img.width, footerHeight);
-    ctx.globalAlpha = 1.0;
+  // 2) 畫 footer 底條（在圖片下方）
+  const footerY = img.height; // 從原圖底部開始
+  ctx.globalAlpha = currentSettings.footerOpacity;
+  ctx.fillStyle = currentSettings.footerColor;
+  ctx.fillRect(0, footerY, img.width, footerHeight);
+  ctx.globalAlpha = 1;
 
-    // --- Draw Logo & Text ---
-    // Calculate dimensions
-    // Logo height is determined by padding within the footer
+  // 3) 畫 Logo（置中放在 footer 區域）
+  if (logoImage) {
     const logoSize = footerHeight * (1 - currentSettings.logoPadding * 2);
-    const logoY = footerY + (footerHeight * currentSettings.logoPadding);
-    
-    // Font size relative to logo size
-    const fontSize = logoSize * 0.5;
-    ctx.font = `bold ${fontSize}px sans-serif`;
+    const logoX = (img.width - logoSize) / 2;
+    const logoY = footerY + (footerHeight - logoSize) / 2;
 
-    // 1. Draw Logo Image (if loaded)
-    if (logoImage) {
-      ctx.drawImage(logoImage, startX, logoY, logoSize, logoSize);
-    }
-
-
-  }, [logoImage]);
+    ctx.drawImage(logoImage, logoX, logoY, logoSize, logoSize);
+  }
+}, [logoImage]);
 
   // Re-draw when settings change or logo loads
   useEffect(() => {
