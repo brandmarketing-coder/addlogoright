@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS: EditorSettings = {
 export default function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [settings, setSettings] = useState<EditorSettings>(DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
   const [logoImage, setLogoImage] = useState<HTMLImageElement | null>(null);
@@ -66,6 +67,7 @@ export default function App() {
 
   const clearImage = () => {
     setSelectedImage(null);
+    setPreviewUrl(null);
     originalImageRef.current = null;
     setShowSettings(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -98,6 +100,9 @@ export default function App() {
       const centeredStartX = (img.width - drawWidth) / 2;
       ctx.drawImage(logoImage, centeredStartX, logoY, drawWidth, logoSize);
     }
+
+    // Update preview image for mobile long-press save
+    setPreviewUrl(canvas.toDataURL('image/png'));
   }, [logoImage]);
 
   useEffect(() => {
@@ -206,7 +211,16 @@ export default function App() {
               </div>
 
               <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex justify-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-                <canvas ref={canvasRef} className="max-h-[65vh] w-auto max-w-full object-contain shadow-lg" />
+                {/* Hidden canvas used only for rendering */}
+                <canvas ref={canvasRef} className="hidden" />
+                {/* Visible img — supports long-press save on mobile */}
+                {previewUrl && (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-h-[65vh] w-auto max-w-full object-contain shadow-lg"
+                  />
+                )}
               </div>
             </div>
           )}
