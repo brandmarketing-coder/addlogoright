@@ -331,14 +331,14 @@ export default function App() {
                 <div className="flex gap-2">
                   <button 
                     onClick={clearImage}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                     Cancel
                   </button>
                   <button 
                     onClick={handleDownload}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#66BB6A] rounded-lg hover:bg-[#5CA860] transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#66BB6A] rounded-lg hover:bg-[#5CA860] transition-colors cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
                     Download
