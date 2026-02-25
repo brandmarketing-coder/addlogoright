@@ -222,6 +222,10 @@ export default function App() {
                   />
                 )}
               </div>
+              {/* Mobile long-press hint */}
+              <p className="sm:hidden mt-3 text-xs text-slate-400 text-center">
+                📱 On mobile, long-press the image to save it to your device.
+              </p>
             </div>
           )}
         </div>
