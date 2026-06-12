@@ -2,7 +2,7 @@ export type Lang = 'zh' | 'en';
 
 export const translations = {
   zh: {
-    appTitle: '圖片編輯器',
+    appTitle: '歐萊德圖片編輯器',
     navWatermark: "O'right | PRO 浮水印",
     navUsda: 'USDA 標章',
     uploadTitleWatermark: '上傳圖片',
@@ -44,7 +44,7 @@ export const translations = {
     nudgeReset: '重設微調',
   },
   en: {
-    appTitle: 'Image Editor',
+    appTitle: "O'right Image Editor",
     navWatermark: "O'right | PRO Watermark",
     navUsda: 'USDA Seal',
     uploadTitleWatermark: 'Upload Photo',

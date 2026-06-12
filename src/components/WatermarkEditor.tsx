@@ -19,17 +19,7 @@ const DEFAULT_SETTINGS: WatermarkSettings = {
   logoPadding: 0.12,
 };
 
-export function WatermarkEditor({
-  t,
-  showSettings,
-  setShowSettings,
-  onHasImageChange,
-}: {
-  t: Translator;
-  showSettings: boolean;
-  setShowSettings: (v: boolean) => void;
-  onHasImageChange: (v: boolean) => void;
-}) {
+export function WatermarkEditor({ t }: { t: Translator }) {
   const [hasImage, setHasImage] = useState(false);
   const [settings, setSettings] = useState<WatermarkSettings>(DEFAULT_SETTINGS);
   const [logoImage, setLogoImage] = useState<HTMLImageElement | null>(null);
@@ -72,8 +62,6 @@ export function WatermarkEditor({
   const clearImage = () => {
     sourceRef.current = null;
     setHasImage(false);
-    onHasImageChange(false);
-    setShowSettings(false);
     resetPreview();
   };
 
@@ -134,19 +122,13 @@ export function WatermarkEditor({
   );
 
   return (
-    <EditorLayout
-      t={t}
-      hasImage={hasImage}
-      showSettings={showSettings}
-      onCloseSettings={() => setShowSettings(false)}
-      settings={settingsContent}
-    >
+    <EditorLayout t={t} hasImage={hasImage} settings={settingsContent}>
       {!hasImage ? (
         <UploadZone
           t={t}
           titleKey="uploadTitleWatermark"
           hintKey="uploadHintWatermark"
-          onImage={(img) => { sourceRef.current = img; setHasImage(true); onHasImageChange(true); }}
+          onImage={(img) => { sourceRef.current = img; setHasImage(true); }}
         />
       ) : (
         <PreviewPane

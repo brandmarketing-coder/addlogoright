@@ -47,17 +47,7 @@ const DEFAULT_SETTINGS: UsdaSettings = {
 const MARGIN_RATIO = 0.035; // seal margin from the edges, relative to the short side
 const NUDGE_STEP = 0.01;    // one nudge = 1% of the short side
 
-export function UsdaEditor({
-  t,
-  showSettings,
-  setShowSettings,
-  onHasImageChange,
-}: {
-  t: Translator;
-  showSettings: boolean;
-  setShowSettings: (v: boolean) => void;
-  onHasImageChange: (v: boolean) => void;
-}) {
+export function UsdaEditor({ t }: { t: Translator }) {
   const [hasImage, setHasImage] = useState(false);
   const [settings, setSettings] = useState<UsdaSettings>(DEFAULT_SETTINGS);
   const [seals, setSeals] = useState<Partial<Record<SealColor, { img: HTMLImageElement; bounds: Bounds }>>>({});
@@ -127,8 +117,6 @@ export function UsdaEditor({
   const clearImage = () => {
     sourceRef.current = null;
     setHasImage(false);
-    onHasImageChange(false);
-    setShowSettings(false);
     resetPreview();
   };
 
@@ -239,19 +227,13 @@ export function UsdaEditor({
   );
 
   return (
-    <EditorLayout
-      t={t}
-      hasImage={hasImage}
-      showSettings={showSettings}
-      onCloseSettings={() => setShowSettings(false)}
-      settings={settingsContent}
-    >
+    <EditorLayout t={t} hasImage={hasImage} settings={settingsContent}>
       {!hasImage ? (
         <UploadZone
           t={t}
           titleKey="uploadTitleUsda"
           hintKey="uploadHintUsda"
-          onImage={(img) => { sourceRef.current = img; setHasImage(true); onHasImageChange(true); }}
+          onImage={(img) => { sourceRef.current = img; setHasImage(true); }}
         />
       ) : (
         <PreviewPane
