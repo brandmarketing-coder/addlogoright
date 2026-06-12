@@ -1,20 +1,47 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# O'right 圖片編輯器 (Image Editor)
 
-# Run and deploy your AI Studio app
+上傳圖片並加上品牌標記的線上工具，支援中文／English 介面切換。
 
-This contains everything you need to run your app locally.
+## 功能
 
-View your app in AI Studio: https://ai.studio/apps/a544cb27-e8b8-4e4f-9412-403098be0167
+### O'right | PRO 浮水印
+- 上傳圖片後自動在底部加上 O'right | PRO 浮水印
+- 可調整底色、透明度、底部高度、LOGO 大小
 
-## Run Locally
+### USDA 標章
+- 上傳圖片後加上 USDA 標章
+- 可調整標章顏色（白、灰）、大小、位置（左上、右上、左下、右下）
 
-**Prerequisites:**  Node.js
+### 其他
+- RWD 響應式介面（手機設定為底部抽屜）
+- 偵測 LINE 內建瀏覽器：提示以外部瀏覽器開啟（`openExternalBrowser=1`），下載改為「長按儲存」彈窗
+- 滑桿調整使用 requestAnimationFrame 繪圖 + 延遲 PNG 編碼，拖動不卡頓
 
+## 開發
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # 產出 dist/
+npm run lint     # TypeScript 型別檢查
+```
+
+## 專案結構
+
+```
+src/
+  App.tsx                      # Header、nav 分頁、語言切換、LINE 提示
+  i18n.ts                      # 中英文字串
+  utils.ts                     # LINE 偵測、下載
+  hooks/useCanvasPreview.ts    # 流暢的 canvas 預覽管線
+  components/
+    EditorLayout.tsx           # 桌面側欄 + 手機抽屜共用骨架
+    UploadZone.tsx             # 拖放上傳區
+    PreviewPane.tsx            # 預覽、下載、LINE 長按儲存彈窗
+    WatermarkEditor.tsx        # PRO 浮水印編輯頁
+    UsdaEditor.tsx             # USDA 標章編輯頁
+public/
+  logo.png                     # O'right | PRO 浮水印
+  usda-white.png               # 官方 USDA Certified Biobased Product 標章（白）
+  usda-gray.png                # 官方 USDA Certified Biobased Product 標章（灰）
+```
