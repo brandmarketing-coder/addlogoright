@@ -3,11 +3,20 @@
 @layer base {
   /*
    * On mobile the settings card sits below the preview, so every scroll
-   * gesture passes over these sliders — and a vertical drag that starts on
-   * one used to scrub its value instead of scrolling the page. Reserving
-   * vertical panning for the browser leaves the slider only the horizontal
-   * drag, which is the gesture people actually mean.
+   * gesture passes over these sliders — and a native range commits a value
+   * the moment a finger lands on it, scrubbing itself on the way past.
+   *
+   * Where the pointer is a finger, take the input out of the event path and
+   * let Slider.tsx drive it instead: it only moves a value on a decisively
+   * sideways drag, and never prevents a scroll. Mouse and pen keep the
+   * native control.
    */
+  @media (pointer: coarse) {
+    input[type="range"] {
+      pointer-events: none;
+    }
+  }
+
   input[type="range"] {
     touch-action: pan-y pinch-zoom;
   }

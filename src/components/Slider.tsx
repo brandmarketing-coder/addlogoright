@@ -1,25 +1,37 @@
 import React, { useRef } from 'react';
 
 /**
- * Range input that refuses to be scrubbed by a scroll.
+ * Range input that a scroll cannot move.
  *
- * `touch-action: pan-y` on its own was not enough: a native range commits a
- * value on pointerdown, so a scroll that happened to start on the track had
- * already moved the handle before the browser decided the gesture was a pan.
+ * Two earlier attempts were not enough. `touch-action: pan-y` only decides
+ * whether the browser may scroll -- a native range still commits a value on
+ * pointerdown, so the handle had already moved before the browser judged the
+ * gesture. Preventing the native drag helped, but a finger starting a scroll
+ * usually drifts sideways a little first, and any threshold that only watches
+ * horizontal travel latches onto that drift and eats the whole scroll.
  *
- * For touch we suppress the native drag entirely and set the value ourselves,
- * and only once the finger has clearly travelled sideways. A finger that moves
- * down first is a scroll and we let go of it for good. Mouse, pen and keyboard
- * keep the native behaviour.
+ * So on touch devices the input is taken out of the event path entirely
+ * (`pointer-events: none`, see index.css) and this wrapper drives it. Nothing
+ * is preventDefault-ed, so scrolling is never at risk, and a value only moves
+ * once the finger has travelled decisively sideways.
  */
 
-/** Sideways travel, in px, before a touch counts as scrubbing. */
-const H_THRESHOLD = 8;
+/** Sideways travel, in px, before a touch may count as scrubbing. */
+const H_THRESHOLD = 10;
+/** ...and it must be this much more horizontal than vertical. Generous,
+ *  because a scroll that opens with a sideways flick is common and a
+ *  scrub that needs a slightly straighter drag costs the user nothing. */
+const H_DOMINANCE = 3;
+/** Downward travel that settles it as a scroll, for good. */
+const V_ESCAPE = 10;
 
 interface DragState {
   x: number;
   y: number;
+  startValue: number;
   scrubbing: boolean;
+  /** Set once we have decided this gesture is a scroll and stepped aside. */
+  released: boolean;
 }
 
 export function Slider({
@@ -39,23 +51,19 @@ export function Slider({
   value: number;
   onChange: (value: number) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const drag = useRef<DragState | null>(null);
 
-  const valueAt = (clientX: number) => {
-    const el = inputRef.current;
-    if (!el) return value;
-    const rect = el.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    const stepped = min + Math.round((ratio * (max - min)) / step) * step;
+  const snap = (raw: number) => {
+    const stepped = min + Math.round((raw - min) / step) * step;
     // toFixed sheds the float noise a 0.05 step accumulates (0.30000000000000004).
     return Math.min(max, Math.max(min, Number(stepped.toFixed(6))));
   };
 
-  /** Capture keeps moves coming to us once scrubbing starts; a pointer the
-   *  browser has already taken back throws, and that is not worth crashing on. */
+  /** Capture keeps moves coming to us mid-scrub; a pointer the browser has
+   *  already taken back throws, and that is not worth crashing on. */
   const capture = (action: 'set' | 'release', pointerId: number) => {
-    const el = inputRef.current;
+    const el = trackRef.current;
     if (!el) return;
     try {
       if (action === 'set') el.setPointerCapture(pointerId);
@@ -65,34 +73,39 @@ export function Slider({
     }
   };
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
-    if (e.pointerType !== 'touch') return;
-    // Skips the browser's own drag handling, so nothing moves on touchdown.
-    e.preventDefault();
-    drag.current = { x: e.clientX, y: e.clientY, scrubbing: false };
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'touch') return; // mouse and pen use the native input
+    drag.current = { x: e.clientX, y: e.clientY, startValue: value, scrubbing: false, released: false };
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLInputElement>) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const state = drag.current;
-    if (!state) return;
+    if (!state || state.released) return;
+
+    const dx = e.clientX - state.x;
+    const dy = e.clientY - state.y;
 
     if (!state.scrubbing) {
-      const dx = Math.abs(e.clientX - state.x);
-      const dy = Math.abs(e.clientY - state.y);
-      if (dy > dx) {
-        drag.current = null; // a scroll — stay out of its way
+      // A scroll gets the benefit of the doubt: any real vertical travel ends
+      // our claim on this gesture permanently, however far sideways it drifts.
+      if (Math.abs(dy) > V_ESCAPE) {
+        state.released = true;
         return;
       }
-      if (dx < H_THRESHOLD) return; // too early to tell
+      if (Math.abs(dx) < H_THRESHOLD || Math.abs(dx) < Math.abs(dy) * H_DOMINANCE) return;
       state.scrubbing = true;
       capture('set', e.pointerId);
     }
 
-    const next = valueAt(e.clientX);
+    // Relative to where the finger landed, so grabbing the handle does not
+    // teleport the value to the touch point.
+    const width = trackRef.current?.getBoundingClientRect().width ?? 0;
+    if (!width) return;
+    const next = snap(state.startValue + (dx / width) * (max - min));
     if (next !== value) onChange(next);
   };
 
-  const endDrag = (e: React.PointerEvent<HTMLInputElement>) => {
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     if (drag.current?.scrubbing) capture('release', e.pointerId);
     drag.current = null;
   };
@@ -100,20 +113,25 @@ export function Slider({
   return (
     <div>
       <label className="block text-sm font-medium text-slate-600 mb-2">{label}</label>
-      <input
-        ref={inputRef}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
+      {/* Padding widens the touch area without moving the track visually. */}
+      <div
+        ref={trackRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        className="w-full accent-[#84BD00]"
-      />
+        className="py-2 -my-2"
+      >
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value))}
+          className="w-full accent-[#84BD00]"
+        />
+      </div>
       {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
     </div>
   );

@@ -16,9 +16,11 @@ interface WatermarkSettings {
 /**
  * The logo is sized off the footer height, which is a ratio of the image
  * height — so on tall images (9:16 stories, phone screenshots) it grew wide
- * enough to run past both edges. Cap it against the image width.
+ * enough to run past both edges. This cap exists only to keep it on the
+ * canvas with a margin either side; it is deliberately loose, because a
+ * tighter one swallowed the whole logo-size slider on portrait photos.
  */
-const MAX_LOGO_WIDTH_RATIO = 0.5;
+const MAX_LOGO_WIDTH_RATIO = 0.9;
 
 const DEFAULT_SETTINGS: WatermarkSettings = {
   footerColor: '#1a331a',
