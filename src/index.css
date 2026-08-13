@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+@layer base {
+  /*
+   * On mobile the settings card sits below the preview, so every scroll
+   * gesture passes over these sliders — and a vertical drag that starts on
+   * one used to scrub its value instead of scrolling the page. Reserving
+   * vertical panning for the browser leaves the slider only the horizontal
+   * drag, which is the gesture people actually mean.
+   */
+  input[type="range"] {
+    touch-action: pan-y pinch-zoom;
+  }
+}
