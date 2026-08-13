@@ -8,16 +8,24 @@ import { UsdaEditor } from './components/UsdaEditor';
 type Tab = 'watermark' | 'usda';
 
 export default function App() {
+  // English by default. Only an explicit toggle is remembered, so a stored
+  // value means "this person chose" — otherwise merely opening the page once
+  // would pin the language and the default would never apply again.
   const [lang, setLang] = useState<Lang>(() =>
-    (localStorage.getItem('lang') as Lang) === 'en' ? 'en' : 'zh',
+    localStorage.getItem('lang') === 'zh' ? 'zh' : 'en',
   );
   const [tab, setTab] = useState<Tab>('watermark');
   const t = makeT(lang);
 
   useEffect(() => {
-    localStorage.setItem('lang', lang);
     document.documentElement.lang = lang === 'zh' ? 'zh-Hant' : 'en';
   }, [lang]);
+
+  const toggleLang = () => {
+    const next: Lang = lang === 'zh' ? 'en' : 'zh';
+    setLang(next);
+    localStorage.setItem('lang', next);
+  };
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'watermark', label: t('navWatermark') },
@@ -34,7 +42,7 @@ export default function App() {
           {/* Language toggle */}
           <button
             type="button"
-            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+            onClick={toggleLang}
             className="flex items-center gap-1.5 px-3 py-2 min-h-[40px] text-sm font-medium text-slate-600 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer touch-manipulation flex-shrink-0"
             aria-label="Switch language"
           >
