@@ -113,14 +113,15 @@ export function Slider({
   return (
     <div>
       <label className="block text-sm font-medium text-slate-600 mb-2">{label}</label>
-      {/* Padding widens the touch area without moving the track visually. */}
+      {/* This is the touch target, not the input — see .slider-track in
+          index.css. Padding widens it without moving the track visually. */}
       <div
         ref={trackRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
-        className="py-2 -my-2"
+        className="slider-track py-2 -my-2"
       >
         <input
           type="range"

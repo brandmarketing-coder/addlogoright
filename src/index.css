@@ -17,7 +17,15 @@
     }
   }
 
-  input[type="range"] {
+  /*
+   * The wrapper — not the input — is what a finger hits once the input is
+   * pointer-events:none, so this is the element the browser tests
+   * touch-action against. It must refuse sideways panning: under the default
+   * `auto` the browser could claim a scrub mid-drag, fire pointercancel, and
+   * leave the value stuck one step in. Vertical panning stays with the
+   * browser, which is how a scroll still gets through.
+   */
+  .slider-track {
     touch-action: pan-y pinch-zoom;
   }
 }
