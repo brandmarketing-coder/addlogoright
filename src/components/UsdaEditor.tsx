@@ -4,6 +4,7 @@ import type { Translator, TKey } from '../i18n';
 import { getOpaqueBounds, type Bounds } from '../utils';
 import { useCanvasPreview } from '../hooks/useCanvasPreview';
 import { UploadZone } from './UploadZone';
+import { Slider } from './Slider';
 import { PreviewPane } from './PreviewPane';
 import { EditorLayout } from './EditorLayout';
 
@@ -143,17 +144,12 @@ export function UsdaEditor({ t }: { t: Translator }) {
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-slate-600 mb-2">
-          {t('usdaSize')}: {Math.round(settings.sizeRatio * 100)}%
-        </label>
-        <input
-          type="range" min="0.08" max="0.45" step="0.01"
-          value={settings.sizeRatio}
-          onChange={(e) => setSettings((p) => ({ ...p, sizeRatio: parseFloat(e.target.value) }))}
-          className="w-full accent-[#84BD00]"
-        />
-      </div>
+      <Slider
+        label={`${t('usdaSize')}: ${Math.round(settings.sizeRatio * 100)}%`}
+        min={0.08} max={0.45} step={0.01}
+        value={settings.sizeRatio}
+        onChange={(v) => setSettings((p) => ({ ...p, sizeRatio: v }))}
+      />
 
       <div>
         <label className="block text-sm font-medium text-slate-600 mb-2">{t('usdaPosition')}</label>

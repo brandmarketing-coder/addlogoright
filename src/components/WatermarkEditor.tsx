@@ -4,6 +4,7 @@ import { useCanvasPreview } from '../hooks/useCanvasPreview';
 import { UploadZone } from './UploadZone';
 import { PreviewPane } from './PreviewPane';
 import { EditorLayout } from './EditorLayout';
+import { Slider } from './Slider';
 
 interface WatermarkSettings {
   footerColor: string;
@@ -95,38 +96,25 @@ export function WatermarkEditor({ t }: { t: Translator }) {
           className="h-10 w-full rounded cursor-pointer"
         />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-slate-600 mb-2">
-          {t('footerOpacity')}: {Math.round(settings.footerOpacity * 100)}%
-        </label>
-        <input
-          type="range" min="0" max="1" step="0.05"
-          value={settings.footerOpacity}
-          onChange={(e) => update('footerOpacity', parseFloat(e.target.value))}
-          className="w-full accent-[#84BD00]"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-slate-600 mb-2">
-          {t('footerHeight')}: {Math.round(settings.footerHeightRatio * 100)}%
-        </label>
-        <input
-          type="range" min="0.05" max="0.3" step="0.01"
-          value={settings.footerHeightRatio}
-          onChange={(e) => update('footerHeightRatio', parseFloat(e.target.value))}
-          className="w-full accent-[#84BD00]"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-slate-600 mb-2">{t('logoSize')}</label>
-        <input
-          type="range" min="0.05" max="0.4" step="0.01"
-          value={settings.logoPadding}
-          onChange={(e) => update('logoPadding', parseFloat(e.target.value))}
-          className="w-full accent-[#84BD00]"
-        />
-        <p className="text-xs text-slate-400 mt-1">{t('logoSizeHint')}</p>
-      </div>
+      <Slider
+        label={`${t('footerOpacity')}: ${Math.round(settings.footerOpacity * 100)}%`}
+        min={0} max={1} step={0.05}
+        value={settings.footerOpacity}
+        onChange={(v) => update('footerOpacity', v)}
+      />
+      <Slider
+        label={`${t('footerHeight')}: ${Math.round(settings.footerHeightRatio * 100)}%`}
+        min={0.05} max={0.3} step={0.01}
+        value={settings.footerHeightRatio}
+        onChange={(v) => update('footerHeightRatio', v)}
+      />
+      <Slider
+        label={t('logoSize')}
+        hint={t('logoSizeHint')}
+        min={0.05} max={0.4} step={0.01}
+        value={settings.logoPadding}
+        onChange={(v) => update('logoPadding', v)}
+      />
       <button
         type="button"
         onClick={() => setSettings(DEFAULT_SETTINGS)}
