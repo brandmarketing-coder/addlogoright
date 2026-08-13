@@ -2,19 +2,37 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Smooth canvas preview pipeline:
+ * - the interactive canvas is drawn at screen scale, not source scale. A 12MP
+ *   photo costs ~10ms a frame to redraw on a desktop and several times that on
+ *   a phone, which is what made dragging a slider feel like it fought back.
  * - drawing is coalesced into requestAnimationFrame (so dragging a slider
  *   never queues more than one redraw per frame)
- * - the PNG encoding for the long-press-saveable <img> is debounced until
- *   the user stops interacting (toDataURL/toBlob on every input event is
- *   what caused the slider jank)
+ * - the full-resolution PNG for the long-press-saveable <img> is debounced
+ *   until the user stops interacting, and laid over the canvas once ready — so
+ *   what you look at while at rest is still the full-quality render.
  */
-export function useCanvasPreview(debounceMs = 300) {
+
+/** Longest edge of the interactive preview canvas, in px. Comfortably above a
+ *  phone's physical preview size, far below a modern camera's output. */
+const MAX_PREVIEW_EDGE = 1600;
+
+/** Draws the composition at whatever size it is handed. Every editor's
+ *  geometry is ratio-based, so the same function serves preview and export. */
+export type Paint = (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+
+export interface PaintSource {
+  width: number;
+  height: number;
+}
+
+export function useCanvasPreview(debounceMs = 600) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFresh, setPreviewFresh] = useState(false);
   const rafRef = useRef(0);
   const timerRef = useRef(0);
   const urlRef = useRef<string | null>(null);
+  const latest = useRef<{ source: PaintSource; paint: Paint } | null>(null);
 
   const releaseUrl = () => {
     if (urlRef.current) {
@@ -23,19 +41,49 @@ export function useCanvasPreview(debounceMs = 300) {
     }
   };
 
+  /** Renders at source resolution, off-screen. For the long-press image and
+   *  for downloads — never on the interactive path. */
+  const renderFull = useCallback(() => {
+    const job = latest.current;
+    if (!job) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = job.source.width;
+    canvas.height = job.source.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    job.paint(ctx, canvas.width, canvas.height);
+    return canvas;
+  }, []);
+
   const scheduleDraw = useCallback(
-    (draw: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => void) => {
+    (source: PaintSource, paint: Paint) => {
+      latest.current = { source, paint };
       setPreviewFresh(false);
       cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext('2d');
         if (!canvas || !ctx) return;
-        draw(canvas, ctx);
+
+        const scale = Math.min(1, MAX_PREVIEW_EDGE / Math.max(source.width, source.height));
+        const width = Math.max(1, Math.round(source.width * scale));
+        const height = Math.max(1, Math.round(source.height * scale));
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.clearRect(0, 0, width, height);
+        paint(ctx, width, height);
 
         window.clearTimeout(timerRef.current);
         timerRef.current = window.setTimeout(() => {
-          canvas.toBlob((blob) => {
+          const full = renderFull();
+          if (!full) return;
+          full.toBlob((blob) => {
             if (!blob) return;
             releaseUrl();
             urlRef.current = URL.createObjectURL(blob);
@@ -45,13 +93,14 @@ export function useCanvasPreview(debounceMs = 300) {
         }, debounceMs);
       });
     },
-    [debounceMs],
+    [debounceMs, renderFull],
   );
 
   const resetPreview = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
     window.clearTimeout(timerRef.current);
     releaseUrl();
+    latest.current = null;
     setPreviewUrl(null);
     setPreviewFresh(false);
   }, []);
@@ -65,5 +114,5 @@ export function useCanvasPreview(debounceMs = 300) {
     [],
   );
 
-  return { canvasRef, previewUrl, previewFresh, scheduleDraw, resetPreview };
+  return { canvasRef, previewUrl, previewFresh, scheduleDraw, resetPreview, renderFull };
 }

@@ -53,7 +53,8 @@ export function UsdaEditor({ t }: { t: Translator }) {
   const [settings, setSettings] = useState<UsdaSettings>(DEFAULT_SETTINGS);
   const [seals, setSeals] = useState<Partial<Record<SealColor, { img: HTMLImageElement; bounds: Bounds }>>>({});
   const sourceRef = useRef<HTMLImageElement | null>(null);
-  const { canvasRef, previewUrl, previewFresh, scheduleDraw, resetPreview } = useCanvasPreview();
+  const { canvasRef, previewUrl, previewFresh, scheduleDraw, resetPreview, renderFull } =
+    useCanvasPreview();
 
   // Preload both seal variants once; the official PNGs carry transparent
   // padding, so we also record the visible bounding box to size/place by.
@@ -70,29 +71,27 @@ export function UsdaEditor({ t }: { t: Translator }) {
   useEffect(() => {
     const img = sourceRef.current;
     if (!img) return;
-    scheduleDraw((canvas, ctx) => {
-      if (canvas.width !== img.width || canvas.height !== img.height) {
-        canvas.width = img.width;
-        canvas.height = img.height;
-      }
-      ctx.drawImage(img, 0, 0);
+    // Ratio-based throughout, so the same paint serves the cheap on-screen
+    // preview and the full-resolution export.
+    scheduleDraw({ width: img.width, height: img.height }, (ctx, width, height) => {
+      ctx.drawImage(img, 0, 0, width, height);
 
       if (!seal) return;
       const { bounds } = seal;
-      const shortSide = Math.min(img.width, img.height);
+      const shortSide = Math.min(width, height);
       const sealW = shortSide * settings.sizeRatio;
       const sealH = sealW * (bounds.h / bounds.w);
       const margin = shortSide * MARGIN_RATIO;
 
       let x = settings.position === 'tl' || settings.position === 'bl'
         ? margin
-        : img.width - sealW - margin;
+        : width - sealW - margin;
       let y = settings.position === 'tl' || settings.position === 'tr'
         ? margin
-        : img.height - sealH - margin;
+        : height - sealH - margin;
 
-      x = Math.max(0, Math.min(img.width - sealW, x + shortSide * settings.offsetX));
-      y = Math.max(0, Math.min(img.height - sealH, y + shortSide * settings.offsetY));
+      x = Math.max(0, Math.min(width - sealW, x + shortSide * settings.offsetX));
+      y = Math.max(0, Math.min(height - sealH, y + shortSide * settings.offsetY));
 
       ctx.drawImage(seal.img, bounds.x, bounds.y, bounds.w, bounds.h, x, y, sealW, sealH);
     });
@@ -235,6 +234,7 @@ export function UsdaEditor({ t }: { t: Translator }) {
         <PreviewPane
           t={t}
           canvasRef={canvasRef}
+          renderFull={renderFull}
           previewUrl={previewUrl}
           previewFresh={previewFresh}
           filename="oright-usda-edited.png"

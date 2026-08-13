@@ -11,6 +11,7 @@ import { IS_LINE, downloadCanvas, externalBrowserUrl } from '../utils';
 export function PreviewPane({
   t,
   canvasRef,
+  renderFull,
   previewUrl,
   previewFresh,
   filename,
@@ -18,6 +19,8 @@ export function PreviewPane({
 }: {
   t: Translator;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  /** Full-resolution render — the on-screen canvas is downscaled for speed. */
+  renderFull: () => HTMLCanvasElement | null;
   previewUrl: string | null;
   previewFresh: boolean;
   filename: string;
@@ -26,14 +29,15 @@ export function PreviewPane({
   const [showSaveModal, setShowSaveModal] = useState(false);
 
   const handleDownload = () => {
-    if (!canvasRef.current) return;
     // LINE's in-app browser blocks anchor downloads — fall back to a
     // long-press-to-save modal instead.
     if (IS_LINE) {
       setShowSaveModal(true);
       return;
     }
-    downloadCanvas(canvasRef.current, filename);
+    const full = renderFull();
+    if (!full) return;
+    downloadCanvas(full, filename);
   };
 
   return (

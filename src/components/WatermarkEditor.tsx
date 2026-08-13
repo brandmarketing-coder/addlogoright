@@ -34,7 +34,8 @@ export function WatermarkEditor({ t }: { t: Translator }) {
   const [settings, setSettings] = useState<WatermarkSettings>(DEFAULT_SETTINGS);
   const [logoImage, setLogoImage] = useState<HTMLImageElement | null>(null);
   const sourceRef = useRef<HTMLImageElement | null>(null);
-  const { canvasRef, previewUrl, previewFresh, scheduleDraw, resetPreview } = useCanvasPreview();
+  const { canvasRef, previewUrl, previewFresh, scheduleDraw, resetPreview, renderFull } =
+    useCanvasPreview();
 
   useEffect(() => {
     const img = new Image();
@@ -46,26 +47,24 @@ export function WatermarkEditor({ t }: { t: Translator }) {
   useEffect(() => {
     const img = sourceRef.current;
     if (!img) return;
-    scheduleDraw((canvas, ctx) => {
-      if (canvas.width !== img.width || canvas.height !== img.height) {
-        canvas.width = img.width;
-        canvas.height = img.height;
-      }
-      ctx.drawImage(img, 0, 0);
+    // Everything below is a ratio of the target size, so this same paint runs
+    // for the cheap on-screen preview and for the full-resolution export.
+    scheduleDraw({ width: img.width, height: img.height }, (ctx, width, height) => {
+      ctx.drawImage(img, 0, 0, width, height);
 
-      const footerHeight = img.height * settings.footerHeightRatio;
-      const footerY = img.height - footerHeight;
+      const footerHeight = height * settings.footerHeightRatio;
+      const footerY = height - footerHeight;
 
       ctx.globalAlpha = settings.footerOpacity;
       ctx.fillStyle = settings.footerColor;
-      ctx.fillRect(0, footerY, img.width, footerHeight);
+      ctx.fillRect(0, footerY, width, footerHeight);
       ctx.globalAlpha = 1;
 
       if (logoImage) {
         const aspect = logoImage.width / logoImage.height;
         let drawHeight = footerHeight * (1 - settings.logoPadding * 2);
         let drawWidth = drawHeight * aspect;
-        const maxWidth = img.width * MAX_LOGO_WIDTH_RATIO;
+        const maxWidth = width * MAX_LOGO_WIDTH_RATIO;
         if (drawWidth > maxWidth) {
           drawWidth = maxWidth;
           drawHeight = drawWidth / aspect;
@@ -73,7 +72,7 @@ export function WatermarkEditor({ t }: { t: Translator }) {
         // Centre vertically in the footer — the height can now be clamped,
         // so padding alone no longer positions it correctly.
         const logoY = footerY + (footerHeight - drawHeight) / 2;
-        ctx.drawImage(logoImage, (img.width - drawWidth) / 2, logoY, drawWidth, drawHeight);
+        ctx.drawImage(logoImage, (width - drawWidth) / 2, logoY, drawWidth, drawHeight);
       }
     });
   }, [hasImage, settings, logoImage, scheduleDraw]);
@@ -140,6 +139,7 @@ export function WatermarkEditor({ t }: { t: Translator }) {
         <PreviewPane
           t={t}
           canvasRef={canvasRef}
+          renderFull={renderFull}
           previewUrl={previewUrl}
           previewFresh={previewFresh}
           filename="oright-pro-edited.png"
