@@ -12,6 +12,13 @@ interface WatermarkSettings {
   logoPadding: number;
 }
 
+/**
+ * The logo is sized off the footer height, which is a ratio of the image
+ * height — so on tall images (9:16 stories, phone screenshots) it grew wide
+ * enough to run past both edges. Cap it against the image width.
+ */
+const MAX_LOGO_WIDTH_RATIO = 0.5;
+
 const DEFAULT_SETTINGS: WatermarkSettings = {
   footerColor: '#1a331a',
   footerOpacity: 0.4,
@@ -30,6 +37,7 @@ export function WatermarkEditor({ t }: { t: Translator }) {
     const img = new Image();
     img.src = '/logo.png';
     img.onload = () => setLogoImage(img);
+    img.onerror = () => console.error('logo.png failed to load — watermark will render without it');
   }, []);
 
   useEffect(() => {
@@ -51,10 +59,18 @@ export function WatermarkEditor({ t }: { t: Translator }) {
       ctx.globalAlpha = 1;
 
       if (logoImage) {
-        const logoSize = footerHeight * (1 - settings.logoPadding * 2);
-        const logoY = footerY + footerHeight * settings.logoPadding;
-        const drawWidth = logoSize * (logoImage.width / logoImage.height);
-        ctx.drawImage(logoImage, (img.width - drawWidth) / 2, logoY, drawWidth, logoSize);
+        const aspect = logoImage.width / logoImage.height;
+        let drawHeight = footerHeight * (1 - settings.logoPadding * 2);
+        let drawWidth = drawHeight * aspect;
+        const maxWidth = img.width * MAX_LOGO_WIDTH_RATIO;
+        if (drawWidth > maxWidth) {
+          drawWidth = maxWidth;
+          drawHeight = drawWidth / aspect;
+        }
+        // Centre vertically in the footer — the height can now be clamped,
+        // so padding alone no longer positions it correctly.
+        const logoY = footerY + (footerHeight - drawHeight) / 2;
+        ctx.drawImage(logoImage, (img.width - drawWidth) / 2, logoY, drawWidth, drawHeight);
       }
     });
   }, [hasImage, settings, logoImage, scheduleDraw]);

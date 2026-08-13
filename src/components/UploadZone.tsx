@@ -1,6 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, AlertCircle } from 'lucide-react';
 import type { Translator, TKey } from '../i18n';
+
+/**
+ * HEIC/HEIF is what iPhones shoot by default. No desktop browser can decode
+ * it, and Windows often reports an empty File.type for it — so sniff the
+ * filename too, and tell the user what to do instead of failing silently.
+ */
+const isHeic = (file: File) =>
+  /\.(heic|heif)$/i.test(file.name) || /image\/hei[cf]/i.test(file.type);
 
 export function UploadZone({
   t,
@@ -14,15 +22,28 @@ export function UploadZone({
   onImage: (img: HTMLImageElement) => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<TKey | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
-    if (!file.type.startsWith('image/')) return;
+    setError(null);
+    if (isHeic(file)) {
+      setError('errHeic');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setError('errNotImage');
+      return;
+    }
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
       URL.revokeObjectURL(url);
       onImage(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setError('errDecode');
     };
     img.src = url;
   };
@@ -66,6 +87,16 @@ export function UploadZone({
         </div>
         <span className="text-gray-400 font-medium text-sm sm:text-base">{t('dropHere')}</span>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="max-w-xl mx-auto mt-4 flex items-start gap-2.5 text-left rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>{t(error)}</span>
+        </div>
+      )}
     </div>
   );
 }
