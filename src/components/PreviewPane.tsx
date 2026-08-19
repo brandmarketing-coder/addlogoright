@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Download } from 'lucide-react';
 import type { Translator } from '../i18n';
 import {
+  IS_ANDROID,
   IS_LINE,
   canShareImage,
   canvasToBlob,
@@ -50,10 +51,11 @@ export function PreviewPane({
 
   const handleSave = async () => {
     // Sharing is the only way a web page can reach the photo library, so it
-    // gets first refusal. The already-encoded blob matters: iOS only honours
-    // navigator.share while the tap is still live, and encoding a 12MP photo
-    // takes far longer than that.
-    if (previewBlob) {
+    // gets first refusal — except on Android, where the sheet leads nowhere
+    // useful and just adds a step before the download. The already-encoded
+    // blob matters: iOS only honours navigator.share while the tap is still
+    // live, and encoding a 12MP photo takes far longer than that.
+    if (!IS_ANDROID && previewBlob) {
       const file = new File([previewBlob], filename, { type: previewBlob.type });
       if (canShareImage(file)) {
         const result = await shareImage(file);
@@ -112,16 +114,20 @@ export function PreviewPane({
       </div>
 
       <div className="mt-3 flex flex-col items-center gap-1.5">
-        <p className="sm:hidden text-xs text-slate-400 text-center">{t('mobileHint')}</p>
-        {/* Android's share sheet has no built-in save-to-gallery action, so a
-            plain download stays reachable rather than being a hidden fallback. */}
-        <button
-          type="button"
-          onClick={handleDownloadOnly}
-          className="text-xs text-slate-400 underline underline-offset-2 hover:text-slate-600 active:text-slate-800 cursor-pointer touch-manipulation py-1"
-        >
-          {t('saveToDevice')}
-        </button>
+        <p className="sm:hidden text-xs text-slate-400 text-center">
+          {t(IS_ANDROID ? 'saveHintAndroid' : 'saveHintIos')}
+        </p>
+        {/* On Android the main button already downloads, so a second control
+            doing the same thing would only be noise. */}
+        {!IS_ANDROID && (
+          <button
+            type="button"
+            onClick={handleDownloadOnly}
+            className="text-xs text-slate-400 underline underline-offset-2 hover:text-slate-600 active:text-slate-800 cursor-pointer touch-manipulation py-1"
+          >
+            {t('saveToDevice')}
+          </button>
+        )}
       </div>
 
       {/* Long-press save modal (LINE in-app browser fallback) */}

@@ -1,6 +1,14 @@
 /** True when running inside the LINE in-app browser. */
 export const IS_LINE = typeof navigator !== 'undefined' && /\bLine\//i.test(navigator.userAgent);
 
+/**
+ * Android's share sheet has no built-in save-to-gallery action, and on the
+ * devices we checked no installed app offers one either — so a share there is
+ * a dead end. Download instead, which at least lands somewhere a gallery app
+ * lists under its device folders.
+ */
+export const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+
 /** Current page URL with LINE's openExternalBrowser flag appended. */
 export function externalBrowserUrl(): string {
   const url = new URL(window.location.href);
