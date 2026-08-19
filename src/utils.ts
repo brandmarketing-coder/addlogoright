@@ -2,12 +2,16 @@
 export const IS_LINE = typeof navigator !== 'undefined' && /\bLine\//i.test(navigator.userAgent);
 
 /**
- * Android's share sheet has no built-in save-to-gallery action, and on the
- * devices we checked no installed app offers one either — so a share there is
- * a dead end. Download instead, which at least lands somewhere a gallery app
- * lists under its device folders.
+ * iOS is the only platform whose share sheet carries a built-in "Save Image"
+ * action, and so the only one where sharing beats downloading. Android's sheet
+ * offers no such thing, and on a desktop it is a system dialog nobody asked
+ * for — both are better served by saving the file straight to the device.
  */
-export const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+export const IS_IOS =
+  typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    // iPadOS 13+ reports itself as a Mac; no Mac has a touchscreen.
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 
 /** Current page URL with LINE's openExternalBrowser flag appended. */
 export function externalBrowserUrl(): string {
