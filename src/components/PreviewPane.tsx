@@ -43,6 +43,11 @@ export function PreviewPane({
     return full ? canvasToBlob(full) : null;
   };
 
+  const handleDownloadOnly = async () => {
+    const blob = previewBlob ?? (await encodeFull());
+    if (blob) downloadBlob(blob, filename);
+  };
+
   const handleSave = async () => {
     // Sharing is the only way a web page can reach the photo library, so it
     // gets first refusal. The already-encoded blob matters: iOS only honours
@@ -106,7 +111,18 @@ export function PreviewPane({
         </div>
       </div>
 
-      <p className="sm:hidden mt-3 text-xs text-slate-400 text-center">{t('mobileHint')}</p>
+      <div className="mt-3 flex flex-col items-center gap-1.5">
+        <p className="sm:hidden text-xs text-slate-400 text-center">{t('mobileHint')}</p>
+        {/* Android's share sheet has no built-in save-to-gallery action, so a
+            plain download stays reachable rather than being a hidden fallback. */}
+        <button
+          type="button"
+          onClick={handleDownloadOnly}
+          className="text-xs text-slate-400 underline underline-offset-2 hover:text-slate-600 active:text-slate-800 cursor-pointer touch-manipulation py-1"
+        >
+          {t('saveToDevice')}
+        </button>
+      </div>
 
       {/* Long-press save modal (LINE in-app browser fallback) */}
       {showSaveModal && previewUrl && (
