@@ -34,7 +34,7 @@ export function WatermarkEditor({ t }: { t: Translator }) {
   const [settings, setSettings] = useState<WatermarkSettings>(DEFAULT_SETTINGS);
   const [logoImage, setLogoImage] = useState<HTMLImageElement | null>(null);
   const sourceRef = useRef<HTMLImageElement | null>(null);
-  const { canvasRef, previewUrl, previewFresh, scheduleDraw, resetPreview, renderFull } =
+  const { canvasRef, previewUrl, previewBlob, previewFresh, scheduleDraw, resetPreview, renderFull } =
     useCanvasPreview();
 
   useEffect(() => {
@@ -141,8 +141,9 @@ export function WatermarkEditor({ t }: { t: Translator }) {
           canvasRef={canvasRef}
           renderFull={renderFull}
           previewUrl={previewUrl}
+          previewBlob={previewBlob}
           previewFresh={previewFresh}
-          filename="oright-pro-edited.png"
+          filename="oright-pro-edited.jpg"
           onCancel={clearImage}
         />
       )}

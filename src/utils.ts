@@ -9,24 +9,54 @@ export function externalBrowserUrl(): string {
 }
 
 /**
- * Download a canvas as a PNG via Blob + object URL.
- * (Blob URLs are more reliable than data: URLs for large images.)
+ * JPEG, not PNG. These are photographs, and the saved file now travels
+ * through a share sheet on its way to the camera roll — a 12MP PNG is tens
+ * of megabytes to encode and hand over, which phones handle badly.
  */
-export function downloadCanvas(canvas: HTMLCanvasElement, filename: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      if (!blob) return resolve(false);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-      resolve(true);
-    }, 'image/png');
-  });
+export const IMAGE_TYPE = 'image/jpeg';
+export const IMAGE_QUALITY = 0.95;
+
+export function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, IMAGE_TYPE, IMAGE_QUALITY));
+}
+
+/** Whether this browser can hand an image file to the OS share sheet. */
+export function canShareImage(file: File): boolean {
+  return typeof navigator !== 'undefined' && !!navigator.canShare?.({ files: [file] });
+}
+
+export type ShareResult = 'shared' | 'cancelled' | 'unsupported';
+
+/**
+ * Offers the image to the OS share sheet, which is the only route a web page
+ * has into the photo library: "Save Image" on iOS, "Save to Photos" or the
+ * gallery app on Android. A plain download can only ever reach Files.
+ *
+ * Must be reached from a user gesture with the blob already in hand — iOS
+ * rejects a share that arrives after a long await.
+ */
+export async function shareImage(file: File): Promise<ShareResult> {
+  try {
+    await navigator.share({ files: [file] });
+    return 'shared';
+  } catch (err) {
+    // The user backing out of the sheet is a completed action, not a failure
+    // to route around.
+    if (err instanceof DOMException && err.name === 'AbortError') return 'cancelled';
+    return 'unsupported';
+  }
+}
+
+/** Saves a blob to the device's downloads. The fallback when sharing is out. */
+export function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 export interface Bounds {

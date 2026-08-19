@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { canvasToBlob } from '../utils';
 
 /**
  * Smooth canvas preview pipeline:
@@ -7,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *   a phone, which is what made dragging a slider feel like it fought back.
  * - drawing is coalesced into requestAnimationFrame (so dragging a slider
  *   never queues more than one redraw per frame)
- * - the full-resolution PNG for the long-press-saveable <img> is debounced
+ * - the full-resolution encode for the long-press-saveable <img> is debounced
  *   until the user stops interacting, and laid over the canvas once ready — so
  *   what you look at while at rest is still the full-quality render.
  */
@@ -28,6 +29,9 @@ export interface PaintSource {
 export function useCanvasPreview(debounceMs = 600) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // Kept alongside the URL so a save can hand the file straight to the share
+  // sheet: iOS rejects navigator.share if we go away and encode first.
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [previewFresh, setPreviewFresh] = useState(false);
   const rafRef = useRef(0);
   const timerRef = useRef(0);
@@ -80,16 +84,16 @@ export function useCanvasPreview(debounceMs = 600) {
         paint(ctx, width, height);
 
         window.clearTimeout(timerRef.current);
-        timerRef.current = window.setTimeout(() => {
+        timerRef.current = window.setTimeout(async () => {
           const full = renderFull();
           if (!full) return;
-          full.toBlob((blob) => {
-            if (!blob) return;
-            releaseUrl();
-            urlRef.current = URL.createObjectURL(blob);
-            setPreviewUrl(urlRef.current);
-            setPreviewFresh(true);
-          }, 'image/png');
+          const blob = await canvasToBlob(full);
+          if (!blob) return;
+          releaseUrl();
+          urlRef.current = URL.createObjectURL(blob);
+          setPreviewUrl(urlRef.current);
+          setPreviewBlob(blob);
+          setPreviewFresh(true);
         }, debounceMs);
       });
     },
@@ -102,6 +106,7 @@ export function useCanvasPreview(debounceMs = 600) {
     releaseUrl();
     latest.current = null;
     setPreviewUrl(null);
+    setPreviewBlob(null);
     setPreviewFresh(false);
   }, []);
 
@@ -114,5 +119,13 @@ export function useCanvasPreview(debounceMs = 600) {
     [],
   );
 
-  return { canvasRef, previewUrl, previewFresh, scheduleDraw, resetPreview, renderFull };
+  return {
+    canvasRef,
+    previewUrl,
+    previewBlob,
+    previewFresh,
+    scheduleDraw,
+    resetPreview,
+    renderFull,
+  };
 }

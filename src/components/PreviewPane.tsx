@@ -1,18 +1,26 @@
 import React, { useState } from 'react';
 import { X, Download } from 'lucide-react';
 import type { Translator } from '../i18n';
-import { IS_LINE, downloadCanvas, externalBrowserUrl } from '../utils';
+import {
+  IS_LINE,
+  canShareImage,
+  canvasToBlob,
+  downloadBlob,
+  externalBrowserUrl,
+  shareImage,
+} from '../utils';
 
 /**
  * Live preview = the visible <canvas> (redraws instantly while dragging
- * sliders). Once the user pauses, a PNG <img> is laid on top so mobile
- * users can long-press to save.
+ * sliders). Once the user pauses, a full-resolution <img> is laid on top so
+ * mobile users can long-press to save.
  */
 export function PreviewPane({
   t,
   canvasRef,
   renderFull,
   previewUrl,
+  previewBlob,
   previewFresh,
   filename,
   onCancel,
@@ -22,22 +30,43 @@ export function PreviewPane({
   /** Full-resolution render — the on-screen canvas is downscaled for speed. */
   renderFull: () => HTMLCanvasElement | null;
   previewUrl: string | null;
+  /** The settled full-resolution encode, ready to hand to the share sheet. */
+  previewBlob: Blob | null;
   previewFresh: boolean;
   filename: string;
   onCancel: () => void;
 }) {
   const [showSaveModal, setShowSaveModal] = useState(false);
 
-  const handleDownload = () => {
+  const encodeFull = async () => {
+    const full = renderFull();
+    return full ? canvasToBlob(full) : null;
+  };
+
+  const handleSave = async () => {
+    // Sharing is the only way a web page can reach the photo library, so it
+    // gets first refusal. The already-encoded blob matters: iOS only honours
+    // navigator.share while the tap is still live, and encoding a 12MP photo
+    // takes far longer than that.
+    if (previewBlob) {
+      const file = new File([previewBlob], filename, { type: previewBlob.type });
+      if (canShareImage(file)) {
+        const result = await shareImage(file);
+        if (result !== 'unsupported') return;
+      }
+    }
+
     // LINE's in-app browser blocks anchor downloads — fall back to a
     // long-press-to-save modal instead.
     if (IS_LINE) {
       setShowSaveModal(true);
       return;
     }
-    const full = renderFull();
-    if (!full) return;
-    downloadCanvas(full, filename);
+
+    // Nothing encoded yet (saved mid-edit). Encoding here spends the tap, so
+    // a share would be refused on iOS — go straight to the download.
+    const blob = previewBlob ?? (await encodeFull());
+    if (blob) downloadBlob(blob, filename);
   };
 
   return (
@@ -55,7 +84,7 @@ export function PreviewPane({
           </button>
           <button
             type="button"
-            onClick={handleDownload}
+            onClick={handleSave}
             className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium text-white bg-[#84BD00] rounded-lg active:bg-[#699400] hover:bg-[#76A800] transition-colors cursor-pointer touch-manipulation select-none"
           >
             <Download className="w-4 h-4" />

@@ -53,7 +53,7 @@ export function UsdaEditor({ t }: { t: Translator }) {
   const [settings, setSettings] = useState<UsdaSettings>(DEFAULT_SETTINGS);
   const [seals, setSeals] = useState<Partial<Record<SealColor, { img: HTMLImageElement; bounds: Bounds }>>>({});
   const sourceRef = useRef<HTMLImageElement | null>(null);
-  const { canvasRef, previewUrl, previewFresh, scheduleDraw, resetPreview, renderFull } =
+  const { canvasRef, previewUrl, previewBlob, previewFresh, scheduleDraw, resetPreview, renderFull } =
     useCanvasPreview();
 
   // Preload both seal variants once; the official PNGs carry transparent
@@ -236,8 +236,9 @@ export function UsdaEditor({ t }: { t: Translator }) {
           canvasRef={canvasRef}
           renderFull={renderFull}
           previewUrl={previewUrl}
+          previewBlob={previewBlob}
           previewFresh={previewFresh}
-          filename="oright-usda-edited.png"
+          filename="oright-usda-edited.jpg"
           onCancel={clearImage}
         />
       )}
