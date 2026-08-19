@@ -9,6 +9,7 @@ import { Slider } from './Slider';
 interface WatermarkSettings {
   footerColor: string;
   footerOpacity: number;
+  /** Fraction of the image's *short* side — see the note where it is used. */
   footerHeightRatio: number;
   logoPadding: number;
 }
@@ -52,7 +53,11 @@ export function WatermarkEditor({ t }: { t: Translator }) {
     scheduleDraw({ width: img.width, height: img.height }, (ctx, width, height) => {
       ctx.drawImage(img, 0, 0, width, height);
 
-      const footerHeight = height * settings.footerHeightRatio;
+      // Measured against the short side, not the height. Taken from the
+      // height, the same ratio drew a band on a portrait photo nearly twice as
+      // thick — relative to the width, which is how the eye reads it — as the
+      // one it drew on a landscape shot.
+      const footerHeight = Math.min(width, height) * settings.footerHeightRatio;
       const footerY = height - footerHeight;
 
       ctx.globalAlpha = settings.footerOpacity;
